@@ -53,6 +53,16 @@ type (
 	deobfuscationDoneMsg  struct{ message string }
 	tickMsg               time.Time
 	gotEndpointDetailsMsg struct{ details map[string]interface{} }
+	// new messages for get endpoint details
+	checkedZdpServiceMsg   struct{ isRunning bool }
+	gotDetailsFromHttpsMsg struct {
+		body []byte
+		err  error
+	}
+	gotDetailsFromHttpMsg struct {
+		body []byte
+		err  error
+	}
 )
 
 type model struct {
@@ -122,8 +132,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Batch(m.spinner.Tick, disableAntiTampering)
 				case "Get Endpoint details":
 					m.state = "processing"
-					m.status = "Getting endpoint details..."
-					return m, tea.Batch(m.spinner.Tick, getEndpointDetailsCmd)
+					m.status = "Checking if ZDP service is running..."
+					return m, tea.Batch(m.spinner.Tick, checkZdpServiceCmd)
 				case "De-obfuscate ootb-settings":
 					m.state = "processing"
 					m.status = "De-obfuscating ootb-settings..."
@@ -200,6 +210,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = "endpoint_details"
 		m.endpointDetails = msg.details
 		return m, nil
+	case checkedZdpServiceMsg:
+		if !msg.isRunning {
+			m.state = "result"
+			m.status = errorStyle.Render("ZDP service is not running. Make sure it's running and try again.")
+			return m, nil
+		}
+		m.status = "ZDP service is running. Trying with HTTPS protocol..."
+		return m, tea.Batch(m.spinner.Tick, getDetailsHttpsCmd)
+	case gotDetailsFromHttpsMsg:
+		if msg.err != nil {
+			m.status = "HTTPS failed. Trying with HTTP protocol..."
+			return m, tea.Batch(m.spinner.Tick, getDetailsHttpCmd)
+		}
+		var details map[string]interface{}
+		err := json.Unmarshal(msg.body, &details)
+		if err != nil {
+			m.state = "result"
+			m.status = errorStyle.Render(fmt.Sprintf("Failed to parse endpoint details response. Invalid JSON format: %v", err))
+			return m, nil
+		}
+		m.state = "endpoint_details"
+		m.endpointDetails = details
+		return m, nil
+	case gotDetailsFromHttpMsg:
+		if msg.err != nil {
+			m.state = "result"
+			m.status = errorStyle.Render(fmt.Sprintf("Failed to connect to endpoint details service. Is the service running and reachable? Original error: %v", msg.err))
+			return m, nil
+		}
+		var details map[string]interface{}
+		err := json.Unmarshal(msg.body, &details)
+		if err != nil {
+			m.state = "result"
+			m.status = errorStyle.Render(fmt.Sprintf("Failed to parse endpoint details response. Invalid JSON format: %v", err))
+			return m, nil
+		}
+		m.state = "endpoint_details"
+		m.endpointDetails = details
+		return m, nil
 	case errorMsg:
 		m.state = "result"
 		m.status = errorStyle.Render(fmt.Sprintf("Error: %v", msg))
@@ -267,15 +316,15 @@ func isZdpServiceRunning() bool {
 	return strings.Contains(string(output), "Running")
 }
 
-func getEndpointDetailsCmd() tea.Msg {
-	if !isZdpServiceRunning() {
-		return errorMsg(fmt.Errorf("zdpservice is not running. make sure it's running and try again"))
-	}
-	
+func checkZdpServiceCmd() tea.Msg {
+	return checkedZdpServiceMsg{isRunning: isZdpServiceRunning()}
+}
+
+func getDetailsHttpsCmd() tea.Msg {
 	url := "https://127.0.0.1:9861/api/v1.0/get-zdpe-details"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return errorMsg(fmt.Errorf("failed to create network request: %w", err))
+		return gotDetailsFromHttpsMsg{err: fmt.Errorf("failed to create network request: %w", err)}
 	}
 
 	tr := &http.Transport{
@@ -285,32 +334,35 @@ func getEndpointDetailsCmd() tea.Msg {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		// Try http if https fails
-		url = "http://127.0.0.1:9861/api/v1.0/get-zdpe-details"
-		req, err = http.NewRequest("GET", url, nil)
-		if err != nil {
-			return errorMsg(fmt.Errorf("failed to create http request for fallback: %w", err))
-		}
-		client = &http.Client{}
-		resp, err = client.Do(req)
-		if err != nil {
-			return errorMsg(fmt.Errorf("failed to connect to endpoint details service. Is the service running and reachable? Original error: %w", err))
-		}
+		return gotDetailsFromHttpsMsg{err: err}
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errorMsg(fmt.Errorf("failed to read response from endpoint details service: %w", err))
+		return gotDetailsFromHttpsMsg{err: fmt.Errorf("failed to read response from endpoint details service: %w", err)}
 	}
+	return gotDetailsFromHttpsMsg{body: body}
+}
 
-	var details map[string]interface{}
-	err = json.Unmarshal(body, &details)
+func getDetailsHttpCmd() tea.Msg {
+	url := "http://127.0.0.1:9861/api/v1.0/get-zdpe-details"
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return errorMsg(fmt.Errorf("failed to parse endpoint details response. Invalid JSON format: %w", err))
+		return gotDetailsFromHttpMsg{err: fmt.Errorf("failed to create http request for fallback: %w", err)}
 	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return gotDetailsFromHttpMsg{err: err}
+	}
+	defer resp.Body.Close()
 
-	return gotEndpointDetailsMsg{details: details}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return gotDetailsFromHttpMsg{err: fmt.Errorf("failed to read response from endpoint details service: %w", err)}
+	}
+	return gotDetailsFromHttpMsg{body: body}
 }
 
 
