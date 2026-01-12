@@ -23,4 +23,9 @@ body {
 #app {
     height: 100vh;
     text-align: center;
+    overflow-y: auto;
+}
+
+::-webkit-scrollbar {
+    width: 0;
 }
