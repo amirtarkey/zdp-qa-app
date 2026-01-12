@@ -1,2 +1,3 @@
-zdp-tool.exe
-zdp-tool.exe~
+build/bin
+frontend/dist
+frontend/node_modules
