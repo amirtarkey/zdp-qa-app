@@ -806,6 +806,7 @@ func (a *App) RegisterDev04(freshStart bool) (string, error) {
 			`C:\ProgramData\Zscaler\ZDP\Settings\zdp_endpoint_settings_ootb.json`,
 			`C:\ProgramData\Zscaler\ZDP\Settings\zdp_endpoint_id`,
 			`C:\ProgramData\Zscaler\ZDP\Applications\application_ids.json`,
+			`C:\ProgramData\Zscaler\ZDP\Settings\zdp_modes.json`,
 		}
 
 		// Create a map for quick lookup
