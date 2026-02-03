@@ -103,11 +103,11 @@ func (a *App) IsZdpServiceRunning() string {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "not installed"
+		return "Not Installed"
 	}
 	status := strings.TrimSpace(string(output))
 	if status == "" {
-		return "not installed"
+		return "Not Installed"
 	}
 	return status
 }
@@ -369,17 +369,17 @@ func (a *App) GetAllVersions() (*AllVersions, error) {
 
     zdpVer, zdpErr := a.getExeVersion(zdpPath)
     if zdpErr != nil {
-        zdpVer = "not installed"
+        zdpVer = "Not Installed"
     }
 
     zccVer, zccErr := a.getExeVersion(zccPath)
     if zccErr != nil {
-        zccVer = "not installed"
+        zccVer = "Not Installed"
     }
     
     zepVer, zepErr := a.getExeVersion(zepPath)
     if zepErr != nil {
-        zepVer = "not installed"
+        zepVer = "Not Installed"
     }
 
     return &AllVersions{
@@ -533,6 +533,10 @@ func (a *App) ClearZdpLogs() (string, error) {
 }
 // GetDlpSdkVersion function (added manually because I kept messing up the replace)
 func (a *App) GetDlpSdkVersion() (string, error) {
+	status := a.IsZdpServiceRunning()
+	if status == "Not Installed" {
+		return "Not Installed", nil
+	}
 	fmt.Println("Attempting to get DLP SDK Version...")
 	result, classifierErr := a.StandaloneClassifier("C:\\ProgramData\\Zscaler\\ZDP\\Logs\\zdp_install.log", "default", "", false, false)
 
