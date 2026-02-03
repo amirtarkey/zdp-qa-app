@@ -601,6 +601,9 @@ func (a *App) getOotbSettings() (map[string]interface{}, error) {
 	// Read file
 	content, err := ioutil.ReadFile(ootbSettingsPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return make(map[string]interface{}), nil
+		}
 		return nil, fmt.Errorf("could not read ootb settings file: %w", err)
 	}
 
@@ -608,6 +611,9 @@ func (a *App) getOotbSettings() (map[string]interface{}, error) {
 	var settings map[string]interface{}
 	err = json.Unmarshal(content, &settings)
 	if err != nil {
+		if err.Error() == "unexpected end of JSON input" {
+			return make(map[string]interface{}), nil
+		}
 		return nil, fmt.Errorf("could not unmarshal ootb settings json: %w", err)
 	}
 	return settings, nil
@@ -642,7 +648,7 @@ func (a *App) GetSaveMessagesLocallyStatus() (bool, error) {
 	// Navigate to the "troubleshooting" object
 	troubleshooting, ok := settings["troubleshooting"].(map[string]interface{})
 	if !ok {
-		return false, fmt.Errorf("'troubleshooting' section not found or invalid in ootb settings")
+		return false, nil
 	}
 
 	// Get value
@@ -656,6 +662,10 @@ func (a *App) GetSaveMessagesLocallyStatus() (bool, error) {
 }
 
 func (a *App) SetSaveMessagesLocally(enabled bool) (string, error) {
+	status := a.IsZdpServiceRunning()
+	if status == "Not Installed" {
+		return "ZDP is not installed.", nil
+	}
 	// Step 1: De-obfuscate ootb settings
 	// We run this regardless, as it checks for obfuscation internally and handles anti-tampering errors.
 	deobfuscateMsg, err := a.DeobfuscateOotbSettings()
@@ -676,7 +686,8 @@ func (a *App) SetSaveMessagesLocally(enabled bool) (string, error) {
 	// Navigate to the "troubleshooting" object
 	troubleshooting, ok := settings["troubleshooting"].(map[string]interface{})
 	if !ok {
-		return "", fmt.Errorf("'troubleshooting' section not found or invalid in ootb settings")
+		troubleshooting = make(map[string]interface{})
+		settings["troubleshooting"] = troubleshooting
 	}
 
 	// Update value
