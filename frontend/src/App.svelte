@@ -236,6 +236,7 @@
                   type="checkbox"
                   checked={saveMessagesLocally}
                   on:change={handleToggleSaveMessagesLocally}
+                  disabled={zdpServiceStatus === 'Not Installed'}
                 />
                 <span class="slider round"></span>
               </label>
