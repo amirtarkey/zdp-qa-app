@@ -275,6 +275,10 @@ func (a *App) IsZdpModesObfuscated() (bool, error) {
 func (a *App) isFileObfuscated(filePath string) (bool, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// If the file doesn't exist, it's not obfuscated.
+			return false, nil
+		}
 		return false, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
