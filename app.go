@@ -98,14 +98,18 @@ func (a *App) SetLogLevel(level string) error {
 
 // --- Methods callable from frontend ---
 
-func (a *App) IsZdpServiceRunning() bool {
-	cmd := exec.Command("powershell", "-Command", "Get-Service -Name zdpservice")
+func (a *App) IsZdpServiceRunning() string {
+	cmd := exec.Command("powershell", "-Command", "(Get-Service -Name zdpservice -ErrorAction SilentlyContinue).Status")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return false
+		return "not installed"
 	}
-	return strings.Contains(string(output), "Running")
+	status := strings.TrimSpace(string(output))
+	if status == "" {
+		return "not installed"
+	}
+	return status
 }
 
 func (a *App) EnableAntiTampering() error {
@@ -365,17 +369,17 @@ func (a *App) GetAllVersions() (*AllVersions, error) {
 
     zdpVer, zdpErr := a.getExeVersion(zdpPath)
     if zdpErr != nil {
-        zdpVer = "Not Found"
+        zdpVer = "not installed"
     }
 
     zccVer, zccErr := a.getExeVersion(zccPath)
     if zccErr != nil {
-        zccVer = "Not Found"
+        zccVer = "not installed"
     }
     
     zepVer, zepErr := a.getExeVersion(zepPath)
     if zepErr != nil {
-        zepVer = "Not Found"
+        zepVer = "not installed"
     }
 
     return &AllVersions{

@@ -28,7 +28,7 @@ export function IsOotbSettingsObfuscated():Promise<boolean>;
 
 export function IsZdpModesObfuscated():Promise<boolean>;
 
-export function IsZdpServiceRunning():Promise<boolean>;
+export function IsZdpServiceRunning():Promise<string>;
 
 export function ReadFileContent(arg1:string):Promise<string>;
 

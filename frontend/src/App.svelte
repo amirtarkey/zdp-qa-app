@@ -54,8 +54,7 @@
     async function checkStatuses() {
       try {
         antiTamperStatus = await GetAntiTamperingStatus();
-  	    let isRunning = await IsZdpServiceRunning();
-  	    zdpServiceStatus = isRunning ? 'Running' : 'Stopped';
+  	    zdpServiceStatus = await IsZdpServiceRunning();
         isOotbSettingsObfuscated = await IsOotbSettingsObfuscated();
         isZdpModesObfuscated = await IsZdpModesObfuscated();
         saveMessagesLocally = await GetSaveMessagesLocallyStatus();
