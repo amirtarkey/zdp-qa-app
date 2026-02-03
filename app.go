@@ -257,10 +257,18 @@ func (a *App) GetVersion() (string, error) {
 }
 
 func (a *App) IsOotbSettingsObfuscated() (bool, error) {
+    status := a.IsZdpServiceRunning()
+    if status == "Not Installed" {
+        return false, nil // ZDP not installed, so can't be obfuscated
+    }
 	return a.isFileObfuscated(`C:\ProgramData\Zscaler\ZDP\Settings\zdp_endpoint_settings_ootb.json`)
 }
 
 func (a *App) IsZdpModesObfuscated() (bool, error) {
+    status := a.IsZdpServiceRunning()
+    if status == "Not Installed" {
+        return false, nil // ZDP not installed, so can't be obfuscated
+    }
 	return a.isFileObfuscated(`C:\ProgramData\Zscaler\ZDP\Settings\zdp_modes.json`)
 }
 
