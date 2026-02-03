@@ -255,7 +255,7 @@
                   id="ootb-settings-toggle"
                   type="checkbox"
                   checked={!isOotbSettingsObfuscated}
-                  disabled={!isOotbSettingsObfuscated}
+                  disabled={!isOotbSettingsObfuscated || zdpServiceStatus === 'Not Installed'}
                   on:change={handleDeobfuscateOotbSettings}
                 />
                 <span class="slider round"></span>
@@ -268,7 +268,7 @@
                   id="zdp-modes-toggle"
                   type="checkbox"
                   checked={!isZdpModesObfuscated}
-                  disabled={!isZdpModesObfuscated}
+                  disabled={!isZdpModesObfuscated || zdpServiceStatus === 'Not Installed'}
                   on:change={handleDeobfuscateZdpModes}
                 />
                 <span class="slider round"></span>
